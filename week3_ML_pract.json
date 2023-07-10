@@ -1,0 +1,930 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "\n",
+    "%matplotlib inline"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 1. Cross Val Score\n",
+    "\n",
+    "**Recall house prices prediction problem**\n",
+    "\n",
+    "We will use the same dataset as the previous week, but already preprocessed."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>SalePrice</th>\n",
+       "      <th>LotArea</th>\n",
+       "      <th>OverallQual</th>\n",
+       "      <th>MasVnrArea</th>\n",
+       "      <th>TotalBsmtSF</th>\n",
+       "      <th>GrLivArea</th>\n",
+       "      <th>FullBath</th>\n",
+       "      <th>GarageCars</th>\n",
+       "      <th>Fireplaces</th>\n",
+       "      <th>WoodDeckSF</th>\n",
+       "      <th>...</th>\n",
+       "      <th>SaleCondition_Normal</th>\n",
+       "      <th>SaleCondition_Partial</th>\n",
+       "      <th>SaleCondition_other</th>\n",
+       "      <th>GarageType_2Types</th>\n",
+       "      <th>GarageType_Attchd</th>\n",
+       "      <th>GarageType_Basment</th>\n",
+       "      <th>GarageType_BuiltIn</th>\n",
+       "      <th>GarageType_CarPort</th>\n",
+       "      <th>GarageType_Detchd</th>\n",
+       "      <th>GarageType_None</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>208500</td>\n",
+       "      <td>8450.0</td>\n",
+       "      <td>7</td>\n",
+       "      <td>196.0</td>\n",
+       "      <td>856.0</td>\n",
+       "      <td>1710.0</td>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>...</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>181500</td>\n",
+       "      <td>9600.0</td>\n",
+       "      <td>6</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>1262.0</td>\n",
+       "      <td>1262.0</td>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "      <td>1</td>\n",
+       "      <td>298.0</td>\n",
+       "      <td>...</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>223500</td>\n",
+       "      <td>11250.0</td>\n",
+       "      <td>7</td>\n",
+       "      <td>162.0</td>\n",
+       "      <td>920.0</td>\n",
+       "      <td>1786.0</td>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>...</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>140000</td>\n",
+       "      <td>9550.0</td>\n",
+       "      <td>7</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>756.0</td>\n",
+       "      <td>1717.0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>0.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>250000</td>\n",
+       "      <td>14260.0</td>\n",
+       "      <td>8</td>\n",
+       "      <td>350.0</td>\n",
+       "      <td>1145.0</td>\n",
+       "      <td>2198.0</td>\n",
+       "      <td>2</td>\n",
+       "      <td>3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>192.0</td>\n",
+       "      <td>...</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>5 rows × 26 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "   SalePrice  LotArea  OverallQual  MasVnrArea  TotalBsmtSF  GrLivArea  \\\n",
+       "0     208500   8450.0            7       196.0        856.0     1710.0   \n",
+       "1     181500   9600.0            6         0.0       1262.0     1262.0   \n",
+       "2     223500  11250.0            7       162.0        920.0     1786.0   \n",
+       "3     140000   9550.0            7         0.0        756.0     1717.0   \n",
+       "4     250000  14260.0            8       350.0       1145.0     2198.0   \n",
+       "\n",
+       "   FullBath  GarageCars  Fireplaces  WoodDeckSF  ...  SaleCondition_Normal  \\\n",
+       "0         2           2           0         0.0  ...                   1.0   \n",
+       "1         2           2           1       298.0  ...                   1.0   \n",
+       "2         2           2           1         0.0  ...                   1.0   \n",
+       "3         1           3           1         0.0  ...                   0.0   \n",
+       "4         2           3           1       192.0  ...                   1.0   \n",
+       "\n",
+       "   SaleCondition_Partial  SaleCondition_other  GarageType_2Types  \\\n",
+       "0                    0.0                  0.0                0.0   \n",
+       "1                    0.0                  0.0                0.0   \n",
+       "2                    0.0                  0.0                0.0   \n",
+       "3                    0.0                  0.0                0.0   \n",
+       "4                    0.0                  0.0                0.0   \n",
+       "\n",
+       "   GarageType_Attchd  GarageType_Basment  GarageType_BuiltIn  \\\n",
+       "0                1.0                 0.0                 0.0   \n",
+       "1                1.0                 0.0                 0.0   \n",
+       "2                1.0                 0.0                 0.0   \n",
+       "3                0.0                 0.0                 0.0   \n",
+       "4                1.0                 0.0                 0.0   \n",
+       "\n",
+       "   GarageType_CarPort  GarageType_Detchd  GarageType_None  \n",
+       "0                 0.0                0.0              0.0  \n",
+       "1                 0.0                0.0              0.0  \n",
+       "2                 0.0                0.0              0.0  \n",
+       "3                 0.0                1.0              0.0  \n",
+       "4                 0.0                0.0              0.0  \n",
+       "\n",
+       "[5 rows x 26 columns]"
+      ]
+     },
+     "execution_count": 2,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data = pd.read_csv('house_prices_prep.csv')\n",
+    "data.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.model_selection import train_test_split\n",
+    "\n",
+    "tr, te = train_test_split(data, test_size=0.2, random_state=42)\n",
+    "\n",
+    "y_train = tr.SalePrice\n",
+    "y_test = te.SalePrice\n",
+    "X_train = tr.drop(['SalePrice'], axis=1)\n",
+    "X_test = te.drop(['SalePrice'], axis=1)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "All the preprocessing was already done, so the only thing we need to do is scale numerical features. For example, we can use `StandardScaler` for that."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.preprocessing import StandardScaler\n",
+    "from sklearn.compose import ColumnTransformer\n",
+    "\n",
+    "num_cols = ['LotArea', 'MasVnrArea', 'TotalBsmtSF', 'GrLivArea', 'WoodDeckSF', 'OpenPorchSF', 'Age', 'RemodAge']\n",
+    "\n",
+    "# transform\n",
+    "column_transforms = ColumnTransformer([\n",
+    "    ('scaling', StandardScaler(),num_cols),\n",
+    "], remainder = 'passthrough'\n",
+    ") #your code here"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Total Pipeline:\n",
+    " - Column Tranformer\n",
+    " - Linear Regression"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.linear_model import LinearRegression\n",
+    "from sklearn.pipeline import make_pipeline\n",
+    "\n",
+    "# define pipeline\n",
+    "pipe = make_pipeline(column_transforms, LinearRegression()) # your code here"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "But what if I want to try different preprocessing? E.g we can use `MinMaxScaler` for numerical features instead of `StandardScaler`?\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.preprocessing import MinMaxScaler\n",
+    "\n",
+    "#option 2\n",
+    "column_transforms_2 = ColumnTransformer([\n",
+    "    ('scaler',MinMaxScaler(), num_cols),\n",
+    "    \n",
+    "]\n",
+    ", remainder='passthrough'\n",
+    ") # your code here\n",
+    "\n",
+    "pipe_2 = make_pipeline(column_transforms_2, LinearRegression())# your code here"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "\n",
+    "We would like to compare Linear Regression these two types of preprocessing **before** evaluating model on the test set. Cross-validation is very useful in this case. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "![im](https://scikit-learn.org/stable/_images/grid_search_cross_validation.png)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "`sklearn.model_selection` module has a a function `cross_val_score`\n",
+    "\n",
+    "**Parameters**:\n",
+    " - estimator (model or the whole pipeline)\n",
+    " - training data\n",
+    " - number of folds or custom CV object\n",
+    " - scorer "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "['accuracy',\n",
+       " 'adjusted_mutual_info_score',\n",
+       " 'adjusted_rand_score',\n",
+       " 'average_precision',\n",
+       " 'balanced_accuracy',\n",
+       " 'completeness_score',\n",
+       " 'explained_variance',\n",
+       " 'f1',\n",
+       " 'f1_macro',\n",
+       " 'f1_micro',\n",
+       " 'f1_samples',\n",
+       " 'f1_weighted',\n",
+       " 'fowlkes_mallows_score',\n",
+       " 'homogeneity_score',\n",
+       " 'jaccard',\n",
+       " 'jaccard_macro',\n",
+       " 'jaccard_micro',\n",
+       " 'jaccard_samples',\n",
+       " 'jaccard_weighted',\n",
+       " 'max_error',\n",
+       " 'mutual_info_score',\n",
+       " 'neg_brier_score',\n",
+       " 'neg_log_loss',\n",
+       " 'neg_mean_absolute_error',\n",
+       " 'neg_mean_gamma_deviance',\n",
+       " 'neg_mean_poisson_deviance',\n",
+       " 'neg_mean_squared_error',\n",
+       " 'neg_mean_squared_log_error',\n",
+       " 'neg_median_absolute_error',\n",
+       " 'neg_root_mean_squared_error',\n",
+       " 'normalized_mutual_info_score',\n",
+       " 'precision',\n",
+       " 'precision_macro',\n",
+       " 'precision_micro',\n",
+       " 'precision_samples',\n",
+       " 'precision_weighted',\n",
+       " 'r2',\n",
+       " 'recall',\n",
+       " 'recall_macro',\n",
+       " 'recall_micro',\n",
+       " 'recall_samples',\n",
+       " 'recall_weighted',\n",
+       " 'roc_auc',\n",
+       " 'roc_auc_ovo',\n",
+       " 'roc_auc_ovo_weighted',\n",
+       " 'roc_auc_ovr',\n",
+       " 'roc_auc_ovr_weighted',\n",
+       " 'v_measure_score']"
+      ]
+     },
+     "execution_count": 10,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# possible scorers\n",
+    "import sklearn.metrics\n",
+    "sorted(sklearn.metrics.SCORERS.keys())"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "We will use K-Fold cross validation. But there are other, more sophisticated options available. You can read about them [here](https://scikit-learn.org/stable/modules/cross_validation.html#cross-validation-iterators)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "CV-score of the first pipeline:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "35405.07542373271"
+      ]
+     },
+     "execution_count": 14,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "from sklearn.model_selection import cross_val_score\n",
+    "\n",
+    "np.mean((-cross_val_score(pipe, X_train, y_train, cv=10, scoring = 'neg_mean_squared_error'))**0.5)\n",
+    "# your code here"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "CV-score of the second pipeline:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "35405.075423732706"
+      ]
+     },
+     "execution_count": 15,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# your code here\n",
+    "np.mean((-cross_val_score(pipe_2, X_train, y_train, cv=10, scoring = 'neg_mean_squared_error'))**0.5)\n",
+    "# your code here"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "---\n",
+    "\n",
+    "## 2. Linear Regression with Regularization\n",
+    "\n",
+    "**Lasso**\n",
+    "$$\n",
+    "\\min_{w} MSE + \\lambda \\|w\\|_1\n",
+    "$$\n",
+    "\n",
+    "\n",
+    "**Ridge**\n",
+    "$$\n",
+    "\\min_{w} MSE + \\lambda \\|w\\|_2^2\n",
+    "$$\n",
+    "\n",
+    "Let us use cross-validation to compare Lasso and Ridge regression."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.pipeline import Pipeline\n",
+    "from sklearn.linear_model import Lasso, Ridge\n",
+    "\n",
+    "# define pipelines\n",
+    "pipe_lasso = Pipeline([\n",
+    "    ('transform', column_transforms),\n",
+    "    ('lasso', Lasso())\n",
+    "    \n",
+    "])#your code here\n",
+    "\n",
+    "pipe_ridge =Pipeline([\n",
+    "    ('transform', column_transforms),\n",
+    "    ('ridge', Ridge())\n",
+    "    \n",
+    "]) #your code here"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "35404.12693645839"
+      ]
+     },
+     "execution_count": 17,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# lasso cv score\n",
+    "np.mean((-cross_val_score(pipe_lasso, X_train, y_train, cv=10, scoring = 'neg_mean_squared_error'))**0.5)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "35390.22070413702"
+      ]
+     },
+     "execution_count": 18,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# ridge cv score\n",
+    "np.mean((-cross_val_score(pipe_ridge, X_train, y_train, cv=10, scoring = 'neg_mean_squared_error'))**0.5)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[('transform',\n",
+       "  ColumnTransformer(n_jobs=None, remainder='passthrough', sparse_threshold=0.3,\n",
+       "                    transformer_weights=None,\n",
+       "                    transformers=[('scaling',\n",
+       "                                   StandardScaler(copy=True, with_mean=True,\n",
+       "                                                  with_std=True),\n",
+       "                                   ['LotArea', 'MasVnrArea', 'TotalBsmtSF',\n",
+       "                                    'GrLivArea', 'WoodDeckSF', 'OpenPorchSF',\n",
+       "                                    'Age', 'RemodAge'])],\n",
+       "                    verbose=False)),\n",
+       " ('lasso',\n",
+       "  Lasso(alpha=1.0, copy_X=True, fit_intercept=True, max_iter=1000,\n",
+       "        normalize=False, positive=False, precompute=False, random_state=None,\n",
+       "        selection='cyclic', tol=0.0001, warm_start=False))]"
+      ]
+     },
+     "execution_count": 20,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# take a look at our pipeline\n",
+    "pipe_lasso.steps"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "But now we also want to try different values of regularization coefficient. Creating new pipeline for each optin would be too much, so we need a better solution. `GridSearchCV` will help us."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.model_selection import GridSearchCV"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 30,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# define pipeline\n",
+    "pipe_ridge = Pipeline([\n",
+    "    ('transform', column_transforms),\n",
+    "    ('reg', Ridge())\n",
+    "    \n",
+    "]) #your code here\n",
+    "\n",
+    "# define parameter grid \n",
+    "param_grid = {'ridge_alpha':[1e-4, 1e-2, 0.1, 1, 10]\n",
+    "    # your code here\n",
+    "}\n",
+    "\n",
+    "\n",
+    "# define `GridSearchCV` object\n",
+    "pipe_cv = GridSearchCV(pipe_ridge, param_grid=param_grid, cv=10, scoring = 'neg_mean_squared_error')\n",
+    "# your code here"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "ValueError",
+     "evalue": "Invalid parameter ridge_alpha for estimator Pipeline(memory=None,\n         steps=[('transform',\n                 ColumnTransformer(n_jobs=None, remainder='passthrough',\n                                   sparse_threshold=0.3,\n                                   transformer_weights=None,\n                                   transformers=[('scaling',\n                                                  StandardScaler(copy=True,\n                                                                 with_mean=True,\n                                                                 with_std=True),\n                                                  ['LotArea', 'MasVnrArea',\n                                                   'TotalBsmtSF', 'GrLivArea',\n                                                   'WoodDeckSF', 'OpenPorchSF',\n                                                   'Age', 'RemodAge'])],\n                                   verbose=False)),\n                ('reg',\n                 Ridge(alpha=1.0, copy_X=True, fit_intercept=True,\n                       max_iter=None, normalize=False, random_state=None,\n                       solver='auto', tol=0.001))],\n         verbose=False). Check the list of available parameters with `estimator.get_params().keys()`.",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mValueError\u001b[0m                                Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-31-6a0281a063fd>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[0;31m# fit `pipe_cv`\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 2\u001b[0;31m \u001b[0mpipe_cv\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mfit\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mX_train\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0my_train\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      3\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      4\u001b[0m \u001b[0;31m# get best estimator\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      5\u001b[0m \u001b[0mpipe_cv\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mbest_estimator_\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/opt/conda/lib/python3.7/site-packages/sklearn/model_selection/_search.py\u001b[0m in \u001b[0;36mfit\u001b[0;34m(self, X, y, groups, **fit_params)\u001b[0m\n\u001b[1;32m    708\u001b[0m                 \u001b[0;32mreturn\u001b[0m \u001b[0mresults\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    709\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 710\u001b[0;31m             \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_run_search\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mevaluate_candidates\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    711\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    712\u001b[0m         \u001b[0;31m# For multi-metric evaluation, store the best_index_, best_params_ and\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/opt/conda/lib/python3.7/site-packages/sklearn/model_selection/_search.py\u001b[0m in \u001b[0;36m_run_search\u001b[0;34m(self, evaluate_candidates)\u001b[0m\n\u001b[1;32m   1149\u001b[0m     \u001b[0;32mdef\u001b[0m \u001b[0m_run_search\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mevaluate_candidates\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1150\u001b[0m         \u001b[0;34m\"\"\"Search all candidates in param_grid\"\"\"\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 1151\u001b[0;31m         \u001b[0mevaluate_candidates\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mParameterGrid\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mparam_grid\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   1152\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1153\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/opt/conda/lib/python3.7/site-packages/sklearn/model_selection/_search.py\u001b[0m in \u001b[0;36mevaluate_candidates\u001b[0;34m(candidate_params)\u001b[0m\n\u001b[1;32m    687\u001b[0m                                \u001b[0;32mfor\u001b[0m \u001b[0mparameters\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m(\u001b[0m\u001b[0mtrain\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mtest\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    688\u001b[0m                                in product(candidate_params,\n\u001b[0;32m--> 689\u001b[0;31m                                           cv.split(X, y, groups)))\n\u001b[0m\u001b[1;32m    690\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    691\u001b[0m                 \u001b[0;32mif\u001b[0m \u001b[0mlen\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mout\u001b[0m\u001b[0;34m)\u001b[0m \u001b[0;34m<\u001b[0m \u001b[0;36m1\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/opt/conda/lib/python3.7/site-packages/joblib/parallel.py\u001b[0m in \u001b[0;36m__call__\u001b[0;34m(self, iterable)\u001b[0m\n\u001b[1;32m   1002\u001b[0m             \u001b[0;31m# remaining jobs.\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1003\u001b[0m             \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_iterating\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;32mFalse\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 1004\u001b[0;31m             \u001b[0;32mif\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mdispatch_one_batch\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0miterator\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   1005\u001b[0m                 \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_iterating\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_original_iterator\u001b[0m \u001b[0;32mis\u001b[0m \u001b[0;32mnot\u001b[0m \u001b[0;32mNone\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1006\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/opt/conda/lib/python3.7/site-packages/joblib/parallel.py\u001b[0m in \u001b[0;36mdispatch_one_batch\u001b[0;34m(self, iterator)\u001b[0m\n\u001b[1;32m    833\u001b[0m                 \u001b[0;32mreturn\u001b[0m \u001b[0;32mFalse\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    834\u001b[0m             \u001b[0;32melse\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 835\u001b[0;31m                 \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_dispatch\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mtasks\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    836\u001b[0m                 \u001b[0;32mreturn\u001b[0m \u001b[0;32mTrue\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    837\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/opt/conda/lib/python3.7/site-packages/joblib/parallel.py\u001b[0m in \u001b[0;36m_dispatch\u001b[0;34m(self, batch)\u001b[0m\n\u001b[1;32m    752\u001b[0m         \u001b[0;32mwith\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_lock\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    753\u001b[0m             \u001b[0mjob_idx\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mlen\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_jobs\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 754\u001b[0;31m             \u001b[0mjob\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_backend\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mapply_async\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mbatch\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcallback\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mcb\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    755\u001b[0m             \u001b[0;31m# A job can complete so quickly than its callback is\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    756\u001b[0m             \u001b[0;31m# called before we get here, causing self._jobs to\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/opt/conda/lib/python3.7/site-packages/joblib/_parallel_backends.py\u001b[0m in \u001b[0;36mapply_async\u001b[0;34m(self, func, callback)\u001b[0m\n\u001b[1;32m    207\u001b[0m     \u001b[0;32mdef\u001b[0m \u001b[0mapply_async\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mfunc\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcallback\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;32mNone\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    208\u001b[0m         \u001b[0;34m\"\"\"Schedule a func to be run\"\"\"\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 209\u001b[0;31m         \u001b[0mresult\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mImmediateResult\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mfunc\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    210\u001b[0m         \u001b[0;32mif\u001b[0m \u001b[0mcallback\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    211\u001b[0m             \u001b[0mcallback\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mresult\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/opt/conda/lib/python3.7/site-packages/joblib/_parallel_backends.py\u001b[0m in \u001b[0;36m__init__\u001b[0;34m(self, batch)\u001b[0m\n\u001b[1;32m    588\u001b[0m         \u001b[0;31m# Don't delay the application, to avoid keeping the input\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    589\u001b[0m         \u001b[0;31m# arguments in memory\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 590\u001b[0;31m         \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mresults\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mbatch\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    591\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    592\u001b[0m     \u001b[0;32mdef\u001b[0m \u001b[0mget\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/opt/conda/lib/python3.7/site-packages/joblib/parallel.py\u001b[0m in \u001b[0;36m__call__\u001b[0;34m(self)\u001b[0m\n\u001b[1;32m    254\u001b[0m         \u001b[0;32mwith\u001b[0m \u001b[0mparallel_backend\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_backend\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mn_jobs\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_n_jobs\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    255\u001b[0m             return [func(*args, **kwargs)\n\u001b[0;32m--> 256\u001b[0;31m                     for func, args, kwargs in self.items]\n\u001b[0m\u001b[1;32m    257\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    258\u001b[0m     \u001b[0;32mdef\u001b[0m \u001b[0m__len__\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/opt/conda/lib/python3.7/site-packages/joblib/parallel.py\u001b[0m in \u001b[0;36m<listcomp>\u001b[0;34m(.0)\u001b[0m\n\u001b[1;32m    254\u001b[0m         \u001b[0;32mwith\u001b[0m \u001b[0mparallel_backend\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_backend\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mn_jobs\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_n_jobs\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    255\u001b[0m             return [func(*args, **kwargs)\n\u001b[0;32m--> 256\u001b[0;31m                     for func, args, kwargs in self.items]\n\u001b[0m\u001b[1;32m    257\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    258\u001b[0m     \u001b[0;32mdef\u001b[0m \u001b[0m__len__\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/opt/conda/lib/python3.7/site-packages/sklearn/model_selection/_validation.py\u001b[0m in \u001b[0;36m_fit_and_score\u001b[0;34m(estimator, X, y, scorer, train, test, verbose, parameters, fit_params, return_train_score, return_parameters, return_n_test_samples, return_times, return_estimator, error_score)\u001b[0m\n\u001b[1;32m    502\u001b[0m             \u001b[0mcloned_parameters\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0mk\u001b[0m\u001b[0;34m]\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mclone\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mv\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0msafe\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;32mFalse\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    503\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 504\u001b[0;31m         \u001b[0mestimator\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mestimator\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mset_params\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m**\u001b[0m\u001b[0mcloned_parameters\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    505\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    506\u001b[0m     \u001b[0mstart_time\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mtime\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mtime\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/opt/conda/lib/python3.7/site-packages/sklearn/pipeline.py\u001b[0m in \u001b[0;36mset_params\u001b[0;34m(self, **kwargs)\u001b[0m\n\u001b[1;32m    161\u001b[0m         \u001b[0mself\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    162\u001b[0m         \"\"\"\n\u001b[0;32m--> 163\u001b[0;31m         \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_set_params\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m'steps'\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m**\u001b[0m\u001b[0mkwargs\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    164\u001b[0m         \u001b[0;32mreturn\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    165\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/opt/conda/lib/python3.7/site-packages/sklearn/utils/metaestimators.py\u001b[0m in \u001b[0;36m_set_params\u001b[0;34m(self, attr, **params)\u001b[0m\n\u001b[1;32m     48\u001b[0m                 \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_replace_estimator\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mattr\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mname\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mparams\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mpop\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mname\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     49\u001b[0m         \u001b[0;31m# 3. Step parameters and other initialisation arguments\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 50\u001b[0;31m         \u001b[0msuper\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mset_params\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m**\u001b[0m\u001b[0mparams\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     51\u001b[0m         \u001b[0;32mreturn\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     52\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m/opt/conda/lib/python3.7/site-packages/sklearn/base.py\u001b[0m in \u001b[0;36mset_params\u001b[0;34m(self, **params)\u001b[0m\n\u001b[1;32m    234\u001b[0m                                  \u001b[0;34m'Check the list of available parameters '\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    235\u001b[0m                                  \u001b[0;34m'with `estimator.get_params().keys()`.'\u001b[0m \u001b[0;34m%\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 236\u001b[0;31m                                  (key, self))\n\u001b[0m\u001b[1;32m    237\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    238\u001b[0m             \u001b[0;32mif\u001b[0m \u001b[0mdelim\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;31mValueError\u001b[0m: Invalid parameter ridge_alpha for estimator Pipeline(memory=None,\n         steps=[('transform',\n                 ColumnTransformer(n_jobs=None, remainder='passthrough',\n                                   sparse_threshold=0.3,\n                                   transformer_weights=None,\n                                   transformers=[('scaling',\n                                                  StandardScaler(copy=True,\n                                                                 with_mean=True,\n                                                                 with_std=True),\n                                                  ['LotArea', 'MasVnrArea',\n                                                   'TotalBsmtSF', 'GrLivArea',\n                                                   'WoodDeckSF', 'OpenPorchSF',\n                                                   'Age', 'RemodAge'])],\n                                   verbose=False)),\n                ('reg',\n                 Ridge(alpha=1.0, copy_X=True, fit_intercept=True,\n                       max_iter=None, normalize=False, random_state=None,\n                       solver='auto', tol=0.001))],\n         verbose=False). Check the list of available parameters with `estimator.get_params().keys()`."
+     ]
+    }
+   ],
+   "source": [
+    "# fit `pipe_cv`\n",
+    "pipe_cv.fit(X_train, y_train)\n",
+    "\n",
+    "# get best estimator\n",
+    "pipe_cv.best_estimator_"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Compare models with GridSearchCV\n",
+    "By far we've used cross-validation to:\n",
+    "- Compare two different models\n",
+    "- Select best set of hyperparameters within one model\n",
+    "\n",
+    "But what if we want to do both? We can use `GridSearchCV` to compare different models with different sets of hyperparameters and select the best one. \n",
+    "\n",
+    "To do that, we need to add different models into the parameter grid. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 33,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.pipeline import Pipeline\n",
+    "\n",
+    "# define pipe \n",
+    "pipe = Pipeline([\n",
+    "    ('preprocess', column_transforms),\n",
+    "    ('reg', Ridge())\n",
+    "])\n",
+    "\n",
+    "# define param grid\n",
+    "param_grid = {\n",
+    "    'reg': [Ridge(), Lasso() ],# list of possible models \n",
+    "    'reg__alpha' : [1e-2, 0.1, 1, 10]# list of possible hyperparameters \n",
+    "}\n",
+    "\n",
+    "# define grid search object\n",
+    "pipe_cv = GridSearchCV(pipe, param_grid=param_grid, cv=10, scoring = 'neg_mean_squared_error') # your code here"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 34,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "GridSearchCV(cv=10, error_score=nan,\n",
+       "             estimator=Pipeline(memory=None,\n",
+       "                                steps=[('preprocess',\n",
+       "                                        ColumnTransformer(n_jobs=None,\n",
+       "                                                          remainder='passthrough',\n",
+       "                                                          sparse_threshold=0.3,\n",
+       "                                                          transformer_weights=None,\n",
+       "                                                          transformers=[('scaling',\n",
+       "                                                                         StandardScaler(copy=True,\n",
+       "                                                                                        with_mean=True,\n",
+       "                                                                                        with_std=True),\n",
+       "                                                                         ['LotArea',\n",
+       "                                                                          'MasVnrArea',\n",
+       "                                                                          'TotalBsmtSF',\n",
+       "                                                                          'GrLivArea',\n",
+       "                                                                          'WoodDeckSF',\n",
+       "                                                                          'OpenPorchSF',\n",
+       "                                                                          'Age',...\n",
+       "                                       normalize=False, random_state=None,\n",
+       "                                       solver='auto', tol=0.001),\n",
+       "                                 Lasso(alpha=1.0, copy_X=True,\n",
+       "                                       fit_intercept=True, max_iter=1000,\n",
+       "                                       normalize=False, positive=False,\n",
+       "                                       precompute=False, random_state=None,\n",
+       "                                       selection='cyclic', tol=0.0001,\n",
+       "                                       warm_start=False)],\n",
+       "                         'reg__alpha': [0.01, 0.1, 1, 10]},\n",
+       "             pre_dispatch='2*n_jobs', refit=True, return_train_score=False,\n",
+       "             scoring='neg_mean_squared_error', verbose=0)"
+      ]
+     },
+     "execution_count": 34,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# fit\n",
+    "pipe_cv.fit(X_train, y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 36,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "Pipeline(memory=None,\n",
+       "         steps=[('preprocess',\n",
+       "                 ColumnTransformer(n_jobs=None, remainder='passthrough',\n",
+       "                                   sparse_threshold=0.3,\n",
+       "                                   transformer_weights=None,\n",
+       "                                   transformers=[('scaling',\n",
+       "                                                  StandardScaler(copy=True,\n",
+       "                                                                 with_mean=True,\n",
+       "                                                                 with_std=True),\n",
+       "                                                  ['LotArea', 'MasVnrArea',\n",
+       "                                                   'TotalBsmtSF', 'GrLivArea',\n",
+       "                                                   'WoodDeckSF', 'OpenPorchSF',\n",
+       "                                                   'Age', 'RemodAge'])],\n",
+       "                                   verbose=False)),\n",
+       "                ('reg',\n",
+       "                 Ridge(alpha=10, copy_X=True, fit_intercept=True, max_iter=None,\n",
+       "                       normalize=False, random_state=None, solver='auto',\n",
+       "                       tol=0.001))],\n",
+       "         verbose=False)"
+      ]
+     },
+     "execution_count": 36,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# print the score of the best model\n",
+    "pipe_cv.best_score_\n",
+    "pipe_cv.best_estimator_\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "---\n",
+    "\n",
+    "**[Optional task]**\n",
+    "Finally, what if we also want to compare the Linear Regression model with Ridge and Lasso? \n",
+    "\n",
+    "We cannot add it to the list of models in the parameter grid above, because it does not have `alpha` parameter. \n",
+    "Turns out `GridSearchCV` can deal with this situation as well. We can create **list of dictionaries** as a param grid. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# define pipe \n",
+    "pipe = Pipeline([\n",
+    "    ('preprocess', column_transforms),\n",
+    "    ('reg', Ridge())\n",
+    "])\n",
+    "\n",
+    "# define param grid\n",
+    "param_grid = [\n",
+    "    {}, # parameter grid for lasso and ridge (model and regularization coefficient)\n",
+    "    {} # parameter grid for linear regression (only model)\n",
+    "]\n",
+    "\n",
+    "# define grid search object\n",
+    "pipe_cv = # your code here"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# fit and print best estimator"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Train best model on the whole train and evaluate on test\n",
+    "\n",
+    "Now we can use best estimator found by Grid Search, to train on the whole training dataset and evaluate it on the test dataset. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 25,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# get the best model from `pipe_cv`\n",
+    "best_m = pipe_cv.best_estimator_\n",
+    "\n",
+    "# fit on the train dataset\n",
+    "\n",
+    "\n",
+    "# calculate predictions on test\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# calculate root mean squared error on the test set\n"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.6"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
